@@ -69,11 +69,35 @@ class Widget {
 			array(
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'identity' ),
-				// Public route by design: it returns data for the *current*
+				// Public route by design: it returns data for the *caller's own*
 				// session only, and nothing at all for logged-out visitors.
 				'permission_callback' => '__return_true',
 			)
 		);
+	}
+
+	/**
+	 * Resolve the logged-in user for a REST request.
+	 *
+	 * WordPress deliberately ignores the auth cookie on REST requests that
+	 * carry no X-WP-Nonce header — rest_cookie_check_errors() calls
+	 * wp_set_current_user(0) and comments "act as if it's an unauthenticated
+	 * request". The nonce cannot be printed into the page here: it is
+	 * per-user and expiring, so on a full-page-cached site one visitor would
+	 * be served another's. The cookie is validated directly instead.
+	 *
+	 * Safe without a nonce because the response is read-only and contains only
+	 * the caller's own identity: a cross-origin page can trigger the request
+	 * but cannot read the reply, since no CORS headers are sent.
+	 *
+	 * @return int User ID, or 0.
+	 */
+	private function current_user(): int {
+		$user_id = get_current_user_id();
+		if ( $user_id > 0 ) {
+			return $user_id;
+		}
+		return (int) wp_validate_auth_cookie( '', 'logged_in' );
 	}
 
 	/**
@@ -86,7 +110,7 @@ class Widget {
 		// Never cache: the payload is per-session.
 		$response->header( 'Cache-Control', 'private, no-store, max-age=0' );
 
-		$user_id = get_current_user_id();
+		$user_id = $this->current_user();
 		if ( ! $user_id ) {
 			return $response;
 		}
@@ -179,17 +203,30 @@ class Widget {
 			}
 
 			// Identity is fetched per session so it never lands in cached HTML.
+			var identified = false;
 			function identify() {
+				if (identified) { return; }
 				fetch(IDENTITY_URL, { credentials: 'same-origin', cache: 'no-store' })
 					.then(function (r) { return r.ok ? r.json() : null; })
 					.then(function (d) {
-						if (!d || !d.identified || !window.$chatwoot) { return; }
-						window.$chatwoot.setUser(d.identifier, {
-							name: d.name,
-							email: d.email,
-							phone_number: d.phone_number,
-							identifier_hash: d.identifier_hash
-						});
+						if (!d || !d.identified) { return; }
+						// The SDK may not have finished booting when this
+						// resolves, so wait for it rather than dropping the
+						// identity and leaving the visitor anonymous.
+						var tries = 0;
+						(function attach() {
+							if (window.$chatwoot && typeof window.$chatwoot.setUser === 'function') {
+								window.$chatwoot.setUser(d.identifier, {
+									name: d.name,
+									email: d.email,
+									phone_number: d.phone_number,
+									identifier_hash: d.identifier_hash
+								});
+								identified = true;
+								return;
+							}
+							if (tries++ < 40) { setTimeout(attach, 250); }
+						})();
 					})
 					.catch(function () { /* identity is best-effort */ });
 			}
@@ -203,6 +240,9 @@ class Widget {
 				s.async = true;
 				s.onload = function () {
 					window.chatwootSDK.run({ websiteToken: TOKEN, baseUrl: BASE });
+					// Belt and braces: the ready event is the normal path, but
+					// starting here too means a missed event costs nothing.
+					identify();
 				};
 				document.head.appendChild(s);
 			};
