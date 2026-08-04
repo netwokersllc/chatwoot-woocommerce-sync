@@ -210,31 +210,84 @@ class Widget {
 		if ( ! $this->should_render_guest_launcher() ) {
 			return;
 		}
-		$label = __( 'Chat with us', 'chatwoot-woocommerce-sync' );
+
+		// Same label the real launcher shows, through the theme's translation
+		// layer: the plugin text domain carries no translations, so __() left
+		// Spanish visitors reading English.
+		$label = function_exists( 'pll__' )
+			? pll__( 'Chat' )
+			: __( 'Chat', 'chatwoot-woocommerce-sync' );
+
+		$color = (string) Settings::get( 'widget_color', '#1f93ff' );
 		?>
-		<button type="button"
-			data-login-trigger
-			id="cws-guest-launcher"
-			aria-label="<?php echo esc_attr( $label ); ?>"
-			title="<?php echo esc_attr( $label ); ?>"
-			style="position:fixed;right:1rem;bottom:1rem;z-index:50;display:flex;align-items:center;gap:.5rem;
-				padding:.875rem 1rem;border:0;border-radius:9999px;cursor:pointer;
-				background:var(--color-primary,#4F46E5);color:#fff;font-weight:600;font-size:.9375rem;line-height:1;
-				box-shadow:0 10px 25px -5px rgb(0 0 0 / .25),0 8px 10px -6px rgb(0 0 0 / .2);">
-			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-				<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
-					stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-			</svg>
-			<span class="cws-guest-launcher__text"><?php echo esc_html( $label ); ?></span>
-		</button>
+		<div class="woot--bubble-holder cws-guest-holder">
+			<button type="button"
+				data-login-trigger
+				class="woot-widget-bubble woot-elements--right woot-widget--expanded cws-guest-bubble"
+				aria-label="<?php echo esc_attr( $label ); ?>"
+				title="<?php echo esc_attr( $label ); ?>">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 244 244" fill="currentColor" aria-hidden="true">
+					<path d="M240.808 240.808H122.123C56.6994 240.808 3.45695 187.562 3.45695 122.122C3.45695 56.7031 56.6994 3.45697 122.124 3.45697C187.566 3.45697 240.808 56.7031 240.808 122.122V240.808Z"/>
+				</svg>
+				<div><?php echo esc_html( $label ); ?></div>
+			</button>
+		</div>
 		<style>
-			/* Match the real launcher, which drops its label on small screens. */
-			@media (max-width: 767px) {
-				#cws-guest-launcher { padding: .875rem; }
-				#cws-guest-launcher .cws-guest-launcher__text { display: none; }
+			/* Copied from the Chatwoot SDK so the two launchers are the same
+			   control: the real one appears the moment the visitor signs in, and
+			   a button that jumps or changes shape reads as a glitch. */
+			.cws-guest-holder .cws-guest-bubble {
+				background: <?php echo esc_attr( $color ); ?>;
+				border-radius: 100px;
+				border-width: 0;
+				bottom: 24px;
+				box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+				cursor: pointer;
+				padding: 0;
+				position: fixed;
+				right: 20px;
+				user-select: none;
+				z-index: 2147483000;
+				overflow: hidden;
+				display: flex;
+				align-items: center;
+				height: 48px;
+				width: auto;
+				transition: transform 300ms ease, opacity 100ms ease;
 			}
-			#cws-guest-launcher:hover { filter: brightness(1.08); }
-			#cws-guest-launcher:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+			.cws-guest-holder .cws-guest-bubble svg {
+				height: 20px;
+				width: 20px;
+				margin: 14px 8px 14px 16px;
+				color: #fff;
+			}
+			.cws-guest-holder .cws-guest-bubble div {
+				align-items: center;
+				color: #fff;
+				display: flex;
+				font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+				font-size: 16px;
+				font-weight: 500;
+				justify-content: center;
+				padding-right: 20px;
+				width: auto;
+			}
+			/* The real launcher drops to a 64px circle on phones. */
+			@media (max-width: 767px) {
+				.cws-guest-holder .cws-guest-bubble {
+					height: 64px;
+					width: 64px;
+					bottom: 20px;
+				}
+				.cws-guest-holder .cws-guest-bubble svg {
+					height: 24px;
+					width: 24px;
+					margin: 20px;
+				}
+				.cws-guest-holder .cws-guest-bubble div { display: none; }
+			}
+			.cws-guest-holder .cws-guest-bubble:hover { filter: brightness(1.06); }
+			.cws-guest-holder .cws-guest-bubble:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
 		</style>
 		<?php
 	}
@@ -265,7 +318,11 @@ class Widget {
 			'darkMode'          => 'light',
 			'useBrowserLanguage' => false,
 			'locale'            => $locale,
-			'launcherTitle'     => __( 'Chat', 'chatwoot-woocommerce-sync' ),
+			// Through the theme's translation layer, so both launchers read the
+			// same and the plugin does not need its own catalogue.
+			'launcherTitle'     => function_exists( 'pll__' )
+				? pll__( 'Chat' )
+				: __( 'Chat', 'chatwoot-woocommerce-sync' ),
 		);
 
 		$consent_cookie = '';

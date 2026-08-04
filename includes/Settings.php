@@ -33,6 +33,7 @@ class Settings {
 		'token_map'       => array( 'Per-language widget tokens (JSON)', 'textarea', 'CHATWOOT_TOKEN_MAP', false ),
 		'hmac_token'      => array( 'Identity validation (HMAC) token', 'password', 'CHATWOOT_HMAC_TOKEN', true ),
 		'email_inbox_id'  => array( 'Email inbox ID', 'text', 'CHATWOOT_EMAIL_INBOX_ID', false ),
+		'widget_color'    => array( 'Widget colour', 'text', 'CHATWOOT_WIDGET_COLOR', false ),
 		'widget_scope'    => array( 'Load widget for', 'select', '', false ),
 		'require_consent' => array( 'Require cookie consent', 'checkbox', '', false ),
 		'consent_cookie'  => array( 'Consent cookie name=value', 'text', '', false ),
