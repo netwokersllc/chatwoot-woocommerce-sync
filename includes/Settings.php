@@ -30,6 +30,7 @@ class Settings {
 		'account_id'      => array( 'Account ID', 'text', 'CHATWOOT_ACCOUNT_ID', false ),
 		'api_token'       => array( 'API access token', 'password', 'CHATWOOT_API_ACCESS_TOKEN', true ),
 		'website_token'   => array( 'Web widget token', 'text', 'CHATWOOT_WEBSITE_TOKEN', false ),
+		'token_map'       => array( 'Per-language widget tokens (JSON)', 'textarea', 'CHATWOOT_TOKEN_MAP', false ),
 		'hmac_token'      => array( 'Identity validation (HMAC) token', 'password', 'CHATWOOT_HMAC_TOKEN', true ),
 		'email_inbox_id'  => array( 'Email inbox ID', 'text', 'CHATWOOT_EMAIL_INBOX_ID', false ),
 		'widget_scope'    => array( 'Load widget for', 'select', '', false ),
@@ -90,6 +91,47 @@ class Settings {
 	 */
 	public static function api_base(): string {
 		return rtrim( (string) self::get( 'base_url' ), '/' ) . '/api/v1/accounts/' . rawurlencode( (string) self::get( 'account_id' ) );
+	}
+
+	/**
+	 * Widget credentials for a language.
+	 *
+	 * Greeting, out-of-office and CSAT copy are single-value fields on an
+	 * inbox, so serving several languages from one inbox means showing some of
+	 * them the wrong language. A per-language inbox fixes that, and this maps
+	 * the visitor's language to the right one. Falls back to the single-token
+	 * settings when no map is configured.
+	 *
+	 * @param string $lang Two-letter language code.
+	 * @return array{website_token:string,hmac_token:string}
+	 */
+	public static function tokens_for_language( string $lang ): array {
+		$fallback = array(
+			'website_token' => (string) self::get( 'website_token' ),
+			'hmac_token'    => (string) self::get( 'hmac_token' ),
+		);
+
+		$raw = (string) self::get( 'token_map' );
+		if ( '' === trim( $raw ) ) {
+			return $fallback;
+		}
+
+		$map = json_decode( $raw, true );
+		if ( ! is_array( $map ) ) {
+			return $fallback;
+		}
+
+		$entry = $map[ $lang ] ?? null;
+		if ( ! is_array( $entry ) || empty( $entry['website_token'] ) ) {
+			return $fallback;
+		}
+
+		return array(
+			'website_token' => (string) $entry['website_token'],
+			// An inbox without its own HMAC secret would silently fail identity
+			// validation, so the shared one is used rather than an empty string.
+			'hmac_token'    => (string) ( $entry['hmac_token'] ?? $fallback['hmac_token'] ),
+		);
 	}
 
 	/**

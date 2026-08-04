@@ -63,8 +63,10 @@ class Identity {
 	 * @param string $identifier Canonical identifier.
 	 * @return string Empty string when no HMAC token is configured.
 	 */
-	public static function hmac( string $identifier ): string {
-		$secret = (string) Settings::get( 'hmac_token' );
+	public static function hmac( string $identifier, string $secret = '' ): string {
+		if ( '' === $secret ) {
+			$secret = (string) Settings::get( 'hmac_token' );
+		}
 		if ( '' === $secret || '' === $identifier ) {
 			return '';
 		}
