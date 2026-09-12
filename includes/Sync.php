@@ -129,6 +129,15 @@ class Sync {
 		$stats = $this->order_stats( $user_id, $user->user_email );
 		$attributes = array_merge( $attributes, $stats );
 
+		/**
+		 * Allow site integrations to add contact attributes without coupling
+		 * this plugin to a theme or application.
+		 *
+		 * @param array<string, mixed> $attributes Contact attributes.
+		 * @param int                 $user_id    WordPress user ID.
+		 */
+		$attributes = (array) apply_filters( 'cws_contact_attributes', $attributes, $user_id );
+
 		// Skip the round trip when nothing meaningful changed.
 		$payload_hash = md5( wp_json_encode( array( $email, Identity::name_for_user( $user_id ), Identity::phone_for_user( $user_id ), $attributes ) ) );
 		if ( get_user_meta( $user_id, Identity::META_SYNC_HASH, true ) === $payload_hash ) {

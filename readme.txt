@@ -4,7 +4,7 @@ Tags: chatwoot, woocommerce, live chat, crm, support
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,9 @@ Filters:
 * `cws_log_successes` (bool) — log successful API calls too; failures are always logged.
 
 == Changelog ==
+
+= 1.1.1 =
+* Add the `cws_contact_attributes` filter for site integrations.
 
 = 1.1.0 =
 * Add per-language widget tokens and HMAC secrets.

@@ -3,7 +3,7 @@
  * Plugin Name:       Chatwoot WooCommerce Sync
  * Plugin URI:        https://github.com/networkers_llc/chatwoot-woocommerce-sync
  * Description:       Two-way sync between WooCommerce/WordPress and Chatwoot: identified live-chat (HMAC), contact sync, and contact-form conversations.
- * Version:           1.1.0
+ * Version:           1.1.1
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            Networkers LLC and contributors
@@ -19,7 +19,7 @@ namespace ChatwootWooSync;
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CWS_VERSION', '1.1.0' );
+define( 'CWS_VERSION', '1.1.1' );
 define( 'CWS_FILE', __FILE__ );
 define( 'CWS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CWS_URL', plugin_dir_url( __FILE__ ) );
