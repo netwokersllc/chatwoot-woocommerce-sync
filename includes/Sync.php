@@ -50,13 +50,6 @@ class Sync {
 		add_action( 'woocommerce_customer_save_address', array( $this, 'queue' ), 20 );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'queue_from_order' ), 20, 4 );
 
-		// PRO grant/revoke fires on payment_complete which may NOT coincide with
-		// a status transition (edge case: order already processing). Hooking the
-		// PRO lifecycle action directly closes that gap so is_pro reaches Chatwoot
-		// immediately, from the very moment the customer pays.
-		add_action( 'framework_pro_granted', array( $this, 'queue' ), 20 );
-		add_action( 'framework_pro_revoked', array( $this, 'queue' ), 20 );
-
 		add_action( self::ACTION_SYNC_CONTACT, array( $this, 'run' ), 10, 1 );
 		add_action( self::ACTION_SYNC_CONTACT . '_fallback', array( $this, 'run' ), 10, 1 );
 	}
@@ -135,11 +128,6 @@ class Sync {
 
 		$stats = $this->order_stats( $user_id, $user->user_email );
 		$attributes = array_merge( $attributes, $stats );
-
-		$pro = $this->pro_attributes( $user_id );
-		if ( ! empty( $pro ) ) {
-			$attributes = array_merge( $attributes, $pro );
-		}
 
 		// Skip the round trip when nothing meaningful changed.
 		$payload_hash = md5( wp_json_encode( array( $email, Identity::name_for_user( $user_id ), Identity::phone_for_user( $user_id ), $attributes ) ) );
@@ -234,41 +222,5 @@ class Sync {
 		}
 
 		return $stats;
-	}
-
-	/**
-	 * PRO membership attributes for the chatbot.
-	 *
-	 * The chat agent greets PRO members by name and thanks them for their
-	 * membership ("gracias por ser miembro PRO desde {year}"). The functions
-	 * live in the theme (framework/modules/pro-membership.php); guard with
-	 * function_exists so the plugin never hard-depends on the theme being
-	 * active.
-	 *
-	 * @param int $user_id WordPress user ID.
-	 * @return array<string, mixed> is_pro + pro_member_since_year (empty if the
-	 *                               theme functions are absent).
-	 */
-	private function pro_attributes( int $user_id ): array {
-		if ( ! function_exists( 'framework_user_is_pro' ) ) {
-			return array();
-		}
-
-		$is_pro = (bool) framework_user_is_pro( $user_id );
-
-		// Year is computed from the snapshot (first PRO-granting order). The
-		// snapshot is cached 12h; falls back to the source-order date.
-		$year = null;
-		if ( $is_pro && function_exists( 'framework_pro_member_snapshot' ) ) {
-			$snap = framework_pro_member_snapshot( $user_id );
-			if ( ! empty( $snap['member_since'] ) ) {
-				$year = (int) wp_date( 'Y', (int) $snap['member_since'] );
-			}
-		}
-
-		return array(
-			'is_pro'               => $is_pro,
-			'pro_member_since_year' => $year,
-		);
 	}
 }
