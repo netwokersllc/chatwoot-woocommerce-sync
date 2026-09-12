@@ -1,12 +1,6 @@
 # Chatwoot WooCommerce Sync
 
 A small, self-hosted WordPress integration for **WooCommerce** and **Chatwoot**.
-Maintained by [Networkers LLC](https://github.com/networkers_llc) and contributors.
-
-This repository is a Networkers-maintained fork of the original
-[Potenciados/chatwoot-woocommerce-sync](https://github.com/Potenciados/chatwoot-woocommerce-sync)
-project. Original contributor history and GPL obligations are retained.
-
 ## What it does
 
 - Embeds the Chatwoot web widget from your own Chatwoot instance.
